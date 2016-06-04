@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang = "en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<meta charset="UTF-8">
+	<title> sample snake game</title>
+	<link rel="stylesheet" media="screen" href="src/style.css">
+	<style>
+	canvas{
+		display: block;
+		position: absolute;
+		border: 5px solid white;
+		margin: auto;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 5; 
+	}
+	body {
+   		 background-image: url("2.png");
+	}
+	#backGround {
+
+		margin-left: -3px;
+		margin-top: 26px;
+		width: 1200px;
+		height: 600px;
+		background: url(1.png);
+	}
+
+	#score {
+		position: absolute;
+		top: 0;
+		left: 45%;
+		color: white;
+		padding-top: 8px;
+		margin-left: 30px;
+		font-size: 22px;
+		font-weight: 900;
+	}
+
+	#titleScore {
+		position: absolute;
+		top: 0;
+		left: 35%;
+		color: white;
+		padding-top: 8px;
+		margin-left: 30px;
+		font-size: 22px;
+		font-weight: 900;
+	}
+
+	#best {
+		position: absolute;
+		top: 0;
+		left: 45%;
+		color: white;
+		padding-top: 635px;
+		margin-left: 30px;
+		font-size: 22px;
+		font-weight: 900;
+	}
+
+	#titleBestScore {
+		position: absolute;
+		top: 0;
+		left: 30%;
+		color: white;
+		padding-top: 635px;
+		margin-left: 30px;
+		font-size: 22px;
+		font-weight: 900;
+	}
+
+#icons {
+	position: absolute;
+	right: 50px;
+	top: 180px;
+	width: 285x;
+	height: 55px;
+}
+
+#icons .pause {
+	width: 54px;
+	height: 54px;
+	background: url(snake_icons.png) 0 0 no-repeat;
+	cursor: pointer;
+	position: absolute;
+	right: 0;
+	top: 320px;
+}
+
+#icons .pause:hover {
+	background-position: 0 -55px;
+}
+
+
+#icons .play {
+	width: 54px;
+	height: 54px;
+	background: url(snake_icons.png) -58px 0 no-repeat;
+	cursor: pointer;
+	position: absolute;
+	right: 0;
+	top: 320px;
+	display: none;
+}
+
+#icons .play:hover {
+	background-position: -58px -55px;
+}
+
+#icons .easy {
+	width: 54px;
+	height: 54px;
+	background: url(snake_icons.png) -116px 0 no-repeat;
+	cursor: pointer;
+	position: absolute;
+	right: 0px;
+	top: 80px;
+}
+
+#icons .easy:hover, #icons .easy_active {
+	background-position: -116px -55px;
+}
+
+#icons .medium {
+	width: 54px;
+	height: 54px;
+	background: url(snake_icons.png) -170px 0 no-repeat;
+	cursor: pointer;
+	position: absolute;
+	right: 0px;
+	top: 160px;
+}
+
+#icons .medium:hover, #icons .medium_active {
+	background-position: -170px -55px;
+}
+
+#icons .hard {
+	width: 54px;
+	height: 54px;
+	background: url(snake_icons.png) -224px 0 no-repeat;
+	cursor: pointer;
+	position: absolute;
+	right: 0px;
+	top: 240px;
+}
+
+#icons .hard:hover, #icons .hard_active {
+	background-position: -224px -55px;
+}
+#start, #paused, #game_over {
+
+	width: 100%;
+	height: 100%;
+	text-align: center;
+	color: #fff;
+	display: none;
+}
+
+}
+	</style>
+</head>
+<body>
+<script>
+
+	//constant
+	var COLS = 80, ROWS = 40;
+	// IDs
+	var EMPTY = 0, SNAKE = 1, FRUIT = 2, FRUIT1 = 3, BOOM = 4, DANGER = 5;
+	//direction
+	var LEFT = 0, RIGHT = 2, UP = 1, DOWN = 3; 
+	// keycodes
+	var press_keys = true;
+	var KEY_LEFT = 37, KEY_UP = 38, KEY_RIGHT = 39, KEY_DOWN = 40;
+	var KEY_A = 65, KEY_W = 87, KEY_D = 68, KEY_S = 83, KEY_P = 80;
+	var grid = {
+		width: null,
+		height: null,
+		_grid: null,
+
+		init: function (d,c,r){
+			this.width = c;
+			this.height = r;
+			this._grid = [];
+			for(var x = 0; x < c; x++){
+				this._grid.push([]);
+				for(var y = 0; y < r; y++) {
+					this._grid[x].push(d);
+				}
+			}
+
+		},
+
+		set: function(val, x, y){
+			this._grid[x][y] = val;
+
+		},
+
+		get: function(x,y){
+			return this._grid[x][y]; 
+
+		}
+
+	}
+	var snake = {
+		direction: null,
+		last: null,
+		_queue:null,
+
+		init: function(d,x,y) {
+			this.direction = d;
+			this._queue = [];
+			this.insert(x,y);
+			this.insert(x,y-1);
+			this.insert(x,y-2);
+
+
+		},
+		insert: function(x,y){
+			this._queue.unshift({x:x,y:y});
+			this.last = this._queue[0];
+
+		},
+
+		remove: function() {
+			return this._queue.pop();
+
+		}
+	}
+	var danger = {
+		direction: null,
+		last: null,
+		_queue: null,
+		init: function(d,x,y) {
+			this.direction = d;
+			this._queue = [];
+			this.insert(x,y);
+			this.insert(x+1,y);
+			this.insert(x+2,y);
+		},
+
+		insert: function(x,y){
+			this._queue.unshift({x:x,y:y});
+			this.last = this._queue[0];
+		},
+		remove: function() {
+			return this._queue.pop();	
+		}	
+
+	}
+	function setfood() {
+		var empty = [];
+		for(var x = 0; x < grid.width; x++) {
+			for(var y = 0; y < grid.height; y++) {
+				if (grid.get(x,y) === EMPTY) {
+					empty.push({x:x,y:y});
+				}
+			}
+
+		}
+		var randpos = empty[Math.floor(Math.random()*empty.length)];
+		grid.set(FRUIT,randpos.x,randpos.y);
+
+	}
+	function setfood1() {
+		var empty = [], bool = false;
+		for(var x = 0; x < grid.width; x++) {
+			for(var y = 0; y < grid.height; y++) {
+				if (grid.get(x,y) === EMPTY) {
+					empty.push({x:x,y:y});
+				}
+				if(grid.get(x,y) === FRUIT1)
+					bool = true;
+			}
+
+		}
+		var randpos1 = empty[Math.floor(Math.random()*empty.length)];
+		if(bool === false && grid.get(randpos1.x,randpos1.y)!= FRUIT)
+		{
+			grid.set(FRUIT1,randpos1.x,randpos1.y);
+		}
+
+	}
+
+	var canvas, ctx, keystate, frames, score, best, speed = 3;
+	function main() {
+		canvas = document.createElement("canvas");
+		canvas.width = COLS*15;
+		canvas.height = ROWS*15;
+		ctx = canvas.getContext("2d");
+		document.body.appendChild(canvas);
+		best = 0;
+		frames = 0;
+		keystate = {};
+
+		document.addEventListener("keydown",function(evt){
+			keystate[evt.keyCode] = true;
+		});
+		document.addEventListener("keyup", function(evt){
+			delete keystate[evt.keyCode];
+		});
+		init();
+		loop();
+
+	}
+
+	function init() {
+		score = 0;
+		grid.init(EMPTY,COLS,ROWS);
+		var sp = {x:Math.floor(COLS/2),y:ROWS};
+		var sp1 = {x:0,y:Math.floor(ROWS/2)};
+		snake.init(UP,sp.x,sp.y);
+		grid.set(SNAKE,sp.x,sp.y);
+		danger.init(RIGHT,sp1.x, sp1.y);
+		grid.set(DANGER,sp1.x,sp1.y);
+		setfood();
+	}
+
+	function loop() {
+		update();
+		draw();
+		window.requestAnimationFrame(loop,canvas);
+	}
+
+	function autoMove(nx1,ny1){
+			if((nx1 > grid.width -2 || nx1 < 1) && danger.direction != UP && danger.direction != DOWN) {
+
+				if(ny1 - 1 > 0 && ny1 + 1 < grid.height -1 ){
+					var rand1 = Math.floor(Math.random()*2);	
+					if(rand1 === 1 )
+						danger.direction = DOWN;
+					else
+						danger.direction = UP;
+				}
+				if(ny1 - 1 <= 0)
+					danger.direction = DOWN;
+				if(ny1 + 1 >= grid.height - 1)
+					danger.direction = UP;
+			}
+			else
+				if((ny1 > grid.height -2 || ny1 < 1) &&  danger.direction != RIGHT && danger.direction != LEFT) {
+					if(nx1 - 1 > 0 && nx1 + 1 < grid.width -1 ){
+						var rand1 = Math.floor(Math.random()*2);	
+						if(rand1 === 1 )
+							danger.direction = LEFT;
+						else
+							danger.direction = RIGHT;					
+					}
+					if(nx1 - 1 <= 0)
+						danger.direction = RIGHT;
+					if(nx1 + 1 >= grid.width -1)
+						danger.direction = LEFT;
+
+				}
+				else{
+					var rand1 = Math.floor(Math.random()*150);
+					if(danger.direction === DOWN || danger.direction === UP){	
+
+						if(nx1 - 1 > 0 && nx1 + 1 < grid.width - 1)
+						{
+							if(rand1 === 1 && danger.direction != LEFT && danger.direction != RIGHT)
+								danger.direction = RIGHT;
+							else
+								if(rand1 === 0 && danger.direction != RIGHT && danger.direction != LEFT)
+									danger.direction = LEFT;
+						}
+						
+							if(nx1 - 1 <= 0 )		
+								if(rand1 < 10 )
+									danger.direction = RIGHT;
+								
+							if(nx1 + 1 >= grid.width -1)
+								if(rand1 < 10)
+									danger.direction = LEFT;
+
+
+					}
+					else
+						if(danger.direction === RIGHT || danger.direction === LEFT)
+							if(ny1 - 1 > 0 && ny1 + 1 < grid.height - 1)
+							{
+								if(rand1 === 1 && danger.direction != UP && danger.direction != DOWN)
+									danger.direction = DOWN;
+								else
+									if (rand1 === 0 && danger.direction != DOWN && danger.direction != UP) 
+										danger.direction = UP;
+							}
+							
+								if(ny1 - 1 <= 0)
+									if(rand1 < 10)
+										danger.direction = DOWN;
+								
+								if (ny1 + 1>= grid.height - 1)
+									if(rand1 < 10)
+										danger.direction = UP;
+				}
+
+	}
+
+	function update () {
+
+		frames++;	
+		if((keystate[KEY_LEFT] || keystate[KEY_A])&& snake.direction!= RIGHT) 
+			snake.direction = LEFT;
+		if((keystate[KEY_UP]||keystate[KEY_W])&& snake.direction!= DOWN) 
+			snake.direction = UP;
+		if((keystate[KEY_RIGHT]||keystate[KEY_D])&& snake.direction!= LEFT) 
+			snake.direction = RIGHT;
+		if((keystate[KEY_DOWN]||keystate[KEY_S])&& snake.direction!= UP) 
+			snake.direction = DOWN;
+		
+		if(keystate[KEY_P])
+		{
+			pause();
+		}
+
+		if (!press_keys) return null;
+		var i;
+		if(speed === 3) {i = 10;}
+		else
+			if(speed === 2) {i = 5;}
+				else
+					{i = 3;}
+		if(frames%i === 0){
+			var nx = snake.last.x;
+			var ny = snake.last.y;
+			var nx1 = danger.last.x;
+			var ny1 = danger.last.y;
+			switch(snake.direction){
+				case LEFT:
+					nx--;
+					break;
+				case UP:
+					ny--;
+					break;
+				case RIGHT:
+					nx++;
+					break;
+				case DOWN:
+					ny++;
+					break;
+			}
+			switch(danger.direction){
+				case LEFT:
+					nx1--;
+					break;
+				case UP:
+					ny1--;
+					break;
+				case RIGHT:
+					nx1++;
+					break;
+				case DOWN:
+					ny1++;
+					break;
+			}
+			if(0 > nx || nx > grid.width-1 ||
+				0 > ny || ny > grid.height-1 ||
+				grid.get(nx,ny) === SNAKE || 
+				grid.get(nx,ny) === DANGER ||
+				grid.get(nx,ny) === BOOM
+				){
+				if(score > best){
+					best = score;
+					document.getElementById('best').innerHTML = best;
+				}
+				return init();
+			}
+		
+			switch(grid.get(nx,ny)){
+				case FRUIT:
+				score++;
+				document.getElementById('score').innerHTML = score;
+				var tail = {x:nx, y:ny};
+				setfood();	
+				break;
+
+				case FRUIT1:
+				score = score + 3;
+				document.getElementById('score').innerHTML = score;
+				var tail = {x:nx, y:ny};
+				break;	
+
+				default:
+				var tail = snake.remove();
+				grid.set(EMPTY,tail.x, tail.y);
+				tail.x = nx;
+				tail.y = ny;								
+			}
+			autoMove(nx1,ny1);	
+
+			switch(grid.get(nx1,ny1)){
+				case SNAKE:
+						if(score > best){
+							best = score;
+							document.getElementById('best').innerHTML = best;
+						}
+						return init();			
+
+				case FRUIT:
+					var tail1 = {x:nx1, y:ny1};
+					setfood();	
+					break;
+				case FRUIT1:
+				case BOOM:
+				var tail1 = {x:nx1, y:ny1};
+				break;;
+
+				default:
+				var tail1 = danger.remove();
+				var temp1 = Math.floor(Math.random()*20);
+				if(temp1 === 1)
+					grid.set(BOOM,tail1.x, tail1.y);
+				else
+					grid.set(EMPTY,tail1.x, tail1.y);
+				tail1.x = nx1;
+				tail1.y = ny1;								
+			}
+							
+
+			var temp = Math.floor(Math.random()*200);
+			if(temp === 1)
+				setfood1();
+
+			if(frames%1000 === 0){
+				for(var x = 0; x < grid.width; x++) {
+					for(var y = 0; y < grid.height; y++) {
+						if (grid.get(x,y) === FRUIT1) {
+							grid.set(EMPTY,x,y);
+						}
+		
+					}
+				}
+			}
+
+			if(frames%500 === 0){
+				for(var x = 0; x < grid.width; x++) {
+					for(var y = 0; y < grid.height; y++) {
+						rand = Math.floor(Math.random()*5);		
+						if (grid.get(x,y) === BOOM && rand === 1) {
+							grid.set(EMPTY,x,y);
+						}		
+					}
+				}
+			}
+
+			grid.set(SNAKE, tail.x, tail.y);
+			snake.insert(tail.x, tail.y);
+			grid.set(DANGER, tail1.x, tail1.y);
+			danger.insert(tail1.x, tail1.y);
+		}
+
+	}
+	function change_speed(level) {		
+
+		document.getElementById('easy').className = 'easy';
+		document.getElementById('medium').className = 'medium';
+		document.getElementById('hard').className = 'hard';
+		if (level == 25) {
+			speed = 1;
+			document.getElementById('hard').className = 'hard hard_active';
+		} else if (level == 50) {
+			speed = 2;
+			document.getElementById('medium').className = 'medium medium_active';
+		} else if (level == 100) {
+			speed = 3;
+			document.getElementById('easy').className = 'easy easy_active';
+		}
+		
+
+	}
+
+	function draw () {
+		var tw = 15;
+		var th = 15;
+		for(var x = 0; x < grid.width; x++) {
+			for(var y = 0; y < grid.height; y++) {
+
+				switch(grid.get(x,y)){
+					case EMPTY:
+						ctx.clearRect(x*tw, y*th, tw, th);
+						break;
+					case SNAKE:
+						if(x === snake.last.x && y === snake.last.y)
+						{
+					 	ctx.beginPath(); 
+					    ctx.arc(x*tw + 7.5, y*th + 7.5, 7, 0, 2 * Math.PI, false); 
+					    ctx.fillStyle = "#FFFF00"; 
+					    ctx.fill(); 
+					    ctx.lineWidth = 2; 
+					    ctx.strokeStyle = "#FFFF66"; 
+					  	ctx.stroke(); 
+						}
+						else
+						{
+					 	ctx.beginPath(); 
+					    ctx.arc(x*tw + 7.5, y*th + 7.5, 7, 0, 2 * Math.PI, false); 
+					    ctx.fillStyle = "#FFFF66"; 
+					    ctx.fill(); 
+					    ctx.lineWidth = 2; 
+					    ctx.strokeStyle = "#FFFF66"; 
+					  	ctx.stroke(); 
+						
+						}
+						break;
+					case DANGER:
+					 	ctx.beginPath(); 
+					    ctx.arc(x*tw + 7.5, y*th + 7.5, 7, 0, 2 * Math.PI, false); 
+					    ctx.fillStyle = "white"; 
+					    ctx.fill(); 
+					    ctx.lineWidth = 2; 
+					    ctx.strokeStyle = "white"; 
+					  	ctx.stroke(); 	
+					  	break;	
+
+					case FRUIT:
+					 	ctx.beginPath(); 
+					    ctx.arc(x*tw + 7.5, y*th + 7.5, 7, 0, 2 * Math.PI, false); 
+					    ctx.fillStyle = "#FF0000"; 
+					    ctx.fill(); 
+					    ctx.lineWidth = 2; 
+					    ctx.strokeStyle = "#AA0000"; 
+					  	ctx.stroke(); 
+						break;
+
+					case FRUIT1:
+					 	ctx.beginPath(); 
+					    ctx.arc(x*tw + 7.5, y*th + 7.5, 7, 0, 2 * Math.PI, false); 
+					    ctx.fillStyle = "#FF3366"; 
+					    ctx.fill(); 
+					    ctx.lineWidth = 2; 
+					    ctx.strokeStyle = "#FF3366"; 
+					  	ctx.stroke(); 
+						break;
+
+					case BOOM:
+					 	ctx.beginPath(); 
+					    ctx.arc(x*tw + 7.5, y*th + 7.5, 7, 0, 2 * Math.PI, false); 
+					    ctx.fillStyle = "black"; 
+					    ctx.fill(); 
+					    ctx.lineWidth = 2; 
+					    ctx.strokeStyle = "black"; 
+					  	ctx.stroke(); 
+						break;
+				}
+
+			}
+		}
+
+	}
+	function pause(){
+		press_keys = false;
+		document.getElementById('pause').style.display = 'none';
+		document.getElementById('play').style.display = 'block';
+	}
+
+	function play(){
+		press_keys = true;
+		document.getElementById('play').style.display = 'none';
+		document.getElementById('pause').style.display = 'block';
+	}
+
+	main();
+</script>
+
+<img id="backGround" src="1.png">
+<div id="score">0</div>
+<div id="best">0</div>
+<div id="titleScore">SCORE</div>
+<div id="titleBestScore">BEST SCORE</div>
+
+<div id="icons">
+<div id="easy" class="easy easy_active" title="Easy" onclick="change_speed(100)"></div>
+<div id="medium" class="medium" title="Medium" onclick="change_speed(50)"></div>
+<div id="hard" class="hard" title="Hard" onclick="change_speed(25)"></div>
+<div style="display: block;" id="pause" class="pause" onclick="pause()"></div>
+<div style="display: none;" id="play" class="play" onclick="play()"></div>
+</div>
+</body>
+</html>
